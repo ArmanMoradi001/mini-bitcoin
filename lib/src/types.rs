@@ -3,7 +3,7 @@ use crate::crypto::{PublicKey, Signature};
 use crate::sha256::Hash;
 use crate::util::MerkleRoot;
 use chrono::{DateTime, Utc};
-use ecdsa::signature::rand_core::block;
+
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

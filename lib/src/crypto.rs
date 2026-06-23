@@ -1,4 +1,4 @@
-use ecdsa::{Signature as ECDSASignature, SigningKey, VerifyingKey, signature::Signer};
+use ecdsa::{Signature as ECDSASignature, SigningKey, VerifyingKey};
 use k256::Secp256k1;
 use serde::{Deserialize, Serialize};
 
@@ -7,26 +7,30 @@ pub struct Signature(pub ECDSASignature<Secp256k1>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct PublicKey(pub VerifyingKey<Secp256k1>);
+
+mod signkey_serde {
+    use ecdsa::SigningKey;
+    use k256::Secp256k1;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(key: &SigningKey<Secp256k1>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_bytes(&key.to_bytes())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<SigningKey<Secp256k1>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = Vec::<u8>::deserialize(deserializer)?;
+        SigningKey::from_slice(&bytes).map_err(serde::de::Error::custom)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PrivateKey(#[serde(with = "signkey_serde")] pub SigningKey<Secp256k1>);
-
-pub fn serialize<S>(
-    key: &super::SigningKey<super::Secp256k1>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    serializer.serialize_bytes(&key.to_bytes())
-}
-
-pub fn deserialize<'de, D>(deserializer: D) -> Result<super::SigningKey<super::Secp256k1>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let bytes: Vec<u8> = Vec::<u8>::deserialize(deserializer)?;
-    Ok(super::SigningKey::from_slice(&bytes).unwrap())
-}
 
 impl PrivateKey {
     pub fn new_key() -> Self {
