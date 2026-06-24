@@ -14,7 +14,7 @@ impl MerkleRoot {
         if layer.len() > 1 {
             let mut new_layer: Vec<Hash> = vec![];
             for pair in layer.chunks(2) {
-               let left_leaf = pair[0];
+                let left_leaf = pair[0];
                 let right_leaf = pair.get(1).unwrap_or(&pair[0]);
                 new_layer.push(Hash::hash(&[left_leaf, *right_leaf]));
             }

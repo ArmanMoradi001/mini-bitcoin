@@ -2,6 +2,7 @@ use crate::U256;
 use crate::crypto::{PublicKey, Signature};
 use crate::sha256::Hash;
 use crate::util::MerkleRoot;
+use crate::error::{BtcError, Result};
 use chrono::{DateTime, Utc};
 
 use serde::{Deserialize, Serialize};
@@ -46,8 +47,41 @@ impl Blockchain {
         Blockchain { blocks: vec![] }
     }
 
-    pub fn add_block(&mut self, block: Block) {
-        self.blocks.push(block)
+    pub fn add_block(&mut self, block: Block) -> Result<()>{
+        if self.blocks.is_empty(){
+            if block.header.prev_block_hash != Hash::zero(){
+                println!("zero Hash");
+                return Err(BtcError::InvalidBlock);
+            }
+        }else {
+
+            let last_block = self.blocks.last().unwrap();
+            if block.header.prev_block_hash != last_block.hash(){
+                println!("prev hash is wrong");
+                return Err(BtcError::InvalidBlock);
+            }
+            if !block.header.hash().matchs_target(block.header.target){
+                println!("does not match target");
+                return Err(BtcError::InvalidBlock);
+            }
+            let merkel_root_checker = MerkleRoot::calculate(&block.transactions);
+            if block.header.merkle_root != merkel_root_checker{
+                println!("block merkle root is not valid!");
+                return Err(BtcError::InvalidMerkleRoot);
+            }
+
+            if block.header.timestamp <= last_block.header.timestamp{
+                println!("block timeatamp is not valid");
+                return Err(BtcError::InvalidBlock);
+            }
+            block.verify_transactions(
+                self.block_height(),
+                &self.utxos,
+                )?
+            
+        }
+        self.blocks.push(block);
+        Ok(())
     }
 }
 
